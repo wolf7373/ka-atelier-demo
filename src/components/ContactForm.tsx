@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { z } from "zod";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +7,32 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+const contactSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Please enter your name")
+    .max(100, "Name must be less than 100 characters"),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Please enter your email")
+    .email("Please enter a valid email address")
+    .max(255, "Email must be less than 255 characters"),
+  company: z.string().max(100, "Company name must be less than 100 characters").optional(),
+  message: z
+    .string()
+    .trim()
+    .min(1, "Please tell us about your project")
+    .max(2000, "Message must be less than 2000 characters"),
+});
+
+type ContactFormData = z.infer<typeof contactSchema>;
+
 const ContactForm = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof ContactFormData, string>>>({});
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -18,11 +42,26 @@ const ContactForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+
+    const result = contactSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof ContactFormData, string>> = {};
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as keyof ContactFormData;
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("send-contact-email", {
-        body: formData,
+      const { error } = await supabase.functions.invoke("send-contact-email", {
+        body: result.data,
       });
 
       if (error) {
@@ -75,10 +114,14 @@ const ContactForm = () => {
             name="name"
             value={formData.name}
             onChange={handleChange}
-            required
-            className="bg-transparent border-border focus:border-champagne transition-colors"
+            className={`bg-transparent border-border focus:border-champagne transition-colors ${
+              errors.name ? "border-destructive" : ""
+            }`}
             placeholder="Your name"
           />
+          {errors.name && (
+            <p className="text-sm text-destructive">{errors.name}</p>
+          )}
         </div>
         <div className="space-y-2">
           <label htmlFor="email" className="label-text text-muted-foreground">
@@ -90,10 +133,14 @@ const ContactForm = () => {
             type="email"
             value={formData.email}
             onChange={handleChange}
-            required
-            className="bg-transparent border-border focus:border-champagne transition-colors"
+            className={`bg-transparent border-border focus:border-champagne transition-colors ${
+              errors.email ? "border-destructive" : ""
+            }`}
             placeholder="your@email.com"
           />
+          {errors.email && (
+            <p className="text-sm text-destructive">{errors.email}</p>
+          )}
         </div>
       </div>
 
@@ -106,9 +153,14 @@ const ContactForm = () => {
           name="company"
           value={formData.company}
           onChange={handleChange}
-          className="bg-transparent border-border focus:border-champagne transition-colors"
+          className={`bg-transparent border-border focus:border-champagne transition-colors ${
+            errors.company ? "border-destructive" : ""
+          }`}
           placeholder="Your company or brand name"
         />
+        {errors.company && (
+          <p className="text-sm text-destructive">{errors.company}</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -120,11 +172,15 @@ const ContactForm = () => {
           name="message"
           value={formData.message}
           onChange={handleChange}
-          required
           rows={6}
-          className="bg-transparent border-border focus:border-champagne transition-colors resize-none"
+          className={`bg-transparent border-border focus:border-champagne transition-colors resize-none ${
+            errors.message ? "border-destructive" : ""
+          }`}
           placeholder="Tell us about your project, timeline, and any specific requirements..."
         />
+        {errors.message && (
+          <p className="text-sm text-destructive">{errors.message}</p>
+        )}
       </div>
 
       <Button

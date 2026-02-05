@@ -45,11 +45,11 @@ const Contact = () => {
               <div className="space-y-4">
                 <h4 className="label-text text-foreground">Direct Contact</h4>
                 <a
-                  href="mailto:keshavarorayt0@gmail.com"
+                  href="mailto:contact@demo-studio.com"
                   className="flex items-center gap-3 text-muted-foreground hover:text-champagne transition-colors duration-300 group"
                 >
                   <Mail className="w-5 h-5" />
-                  <span>keshavarorayt0@gmail.com</span>
+                  <span>contact@demo-studio.com</span>
                   <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </a>
               </div>
