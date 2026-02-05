@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import ImageWithSkeleton from "./ImageWithSkeleton";
 
 import portfolio1 from "@/assets/portfolio-1.jpg";
 import portfolio2 from "@/assets/portfolio-2.jpg";
@@ -82,11 +83,11 @@ const PortfolioGrid = ({ limit, category }: PortfolioGridProps) => {
           className="group"
         >
           <Link to="/portfolio" className="block">
-            <div className="image-hover aspect-[4/5] mb-4 bg-muted">
-              <img
+            <div className="image-hover mb-4 bg-muted">
+              <ImageWithSkeleton
                 src={item.image}
                 alt={item.title}
-                className="w-full h-full object-cover"
+                aspectRatio="aspect-[4/5]"
               />
             </div>
             <div className="space-y-1">
