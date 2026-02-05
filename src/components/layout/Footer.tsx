@@ -38,10 +38,10 @@ const Footer = () => {
           <div className="space-y-4">
             <h4 className="label-text text-foreground">Get in Touch</h4>
             <a
-              href="mailto:keshavarorayt0@gmail.com"
+              href="mailto:contact@demo-studio.com"
               className="text-sm text-muted-foreground hover:text-champagne transition-colors duration-300 block"
             >
-              keshavarorayt0@gmail.com
+              contact@demo-studio.com
             </a>
             <div className="pt-2">
               <Link
