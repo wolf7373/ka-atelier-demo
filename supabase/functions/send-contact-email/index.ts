@@ -13,8 +13,19 @@ interface ContactFormRequest {
   message: string;
 }
 
+// HTML encoding function to prevent XSS in email content
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
 // Simple in-memory rate limiting (resets on function cold start)
-// For production, consider using a persistent store like Redis or Supabase
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_MAX_REQUESTS = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour in milliseconds
@@ -24,7 +35,6 @@ function isRateLimited(clientIP: string): boolean {
   const rateData = rateLimitMap.get(clientIP);
 
   if (!rateData || now > rateData.resetTime) {
-    // Reset or initialize rate limit data
     rateLimitMap.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
     return false;
   }
@@ -33,17 +43,14 @@ function isRateLimited(clientIP: string): boolean {
     return true;
   }
 
-  // Increment request count
   rateData.count++;
   rateLimitMap.set(clientIP, rateData);
   return false;
 }
 
 function getClientIP(req: Request): string {
-  // Try various headers that might contain the client IP
   const forwarded = req.headers.get("x-forwarded-for");
   if (forwarded) {
-    // x-forwarded-for can contain multiple IPs; take the first one
     return forwarded.split(",")[0].trim();
   }
   
@@ -60,7 +67,6 @@ function getClientIP(req: Request): string {
   return "unknown";
 }
 
-// Clean up old entries periodically to prevent memory leaks
 function cleanupRateLimitMap(): void {
   const now = Date.now();
   for (const [ip, data] of rateLimitMap.entries()) {
@@ -99,7 +105,17 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY is not configured");
+      console.error("RESEND_API_KEY environment variable is not configured");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Service temporarily unavailable. Please try again later." 
+        }),
+        {
+          status: 503,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     const { name, email, company, message }: ContactFormRequest = await req.json();
@@ -138,7 +154,13 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const companyLine = company ? `<p><strong>Company:</strong> ${company}</p>` : "";
+    // Sanitize all user inputs before embedding in HTML
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safeCompany = company ? escapeHtml(company) : "";
+    const safeMessage = escapeHtml(message).replace(/\n/g, "<br>");
+
+    const companyLine = safeCompany ? `<p><strong>Company:</strong> ${safeCompany}</p>` : "";
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -150,14 +172,14 @@ const handler = async (req: Request): Promise<Response> => {
         from: "Contact Form <onboarding@resend.dev>",
         to: ["contact@demo-studio.com"],
         reply_to: email,
-        subject: `New Contact Inquiry from ${name}`,
+        subject: `New Contact Inquiry from ${safeName}`,
         html: `
           <h2>New Contact Form Submission</h2>
-          <p><strong>Name:</strong> ${name}</p>
-          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Name:</strong> ${safeName}</p>
+          <p><strong>Email:</strong> ${safeEmail}</p>
           ${companyLine}
           <h3>Message:</h3>
-          <p>${message.replace(/\n/g, "<br>")}</p>
+          <p>${safeMessage}</p>
         `,
       }),
     });
@@ -166,7 +188,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!emailResponse.ok) {
       console.error("Resend API error:", data);
-      throw new Error(data.message || "Failed to send email");
+      // Return generic error instead of exposing API details
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Unable to send your message at this time. Please try again later." 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     console.log("Contact email sent successfully:", data);
@@ -176,10 +208,15 @@ const handler = async (req: Request): Promise<Response> => {
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: unknown) {
+    // Log detailed error for debugging (server-side only)
     console.error("Error in send-contact-email function:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Return generic error to client - never expose internal details
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ 
+        success: false, 
+        error: "Unable to send your message at this time. Please try again later or contact us directly at contact@demo-studio.com." 
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
