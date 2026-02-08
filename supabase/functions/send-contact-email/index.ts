@@ -13,10 +13,87 @@ interface ContactFormRequest {
   message: string;
 }
 
+// Simple in-memory rate limiting (resets on function cold start)
+// For production, consider using a persistent store like Redis or Supabase
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX_REQUESTS = 5;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour in milliseconds
+
+function isRateLimited(clientIP: string): boolean {
+  const now = Date.now();
+  const rateData = rateLimitMap.get(clientIP);
+
+  if (!rateData || now > rateData.resetTime) {
+    // Reset or initialize rate limit data
+    rateLimitMap.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+
+  if (rateData.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return true;
+  }
+
+  // Increment request count
+  rateData.count++;
+  rateLimitMap.set(clientIP, rateData);
+  return false;
+}
+
+function getClientIP(req: Request): string {
+  // Try various headers that might contain the client IP
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    // x-forwarded-for can contain multiple IPs; take the first one
+    return forwarded.split(",")[0].trim();
+  }
+  
+  const realIP = req.headers.get("x-real-ip");
+  if (realIP) {
+    return realIP;
+  }
+  
+  const cfConnectingIP = req.headers.get("cf-connecting-ip");
+  if (cfConnectingIP) {
+    return cfConnectingIP;
+  }
+  
+  return "unknown";
+}
+
+// Clean up old entries periodically to prevent memory leaks
+function cleanupRateLimitMap(): void {
+  const now = Date.now();
+  for (const [ip, data] of rateLimitMap.entries()) {
+    if (now > data.resetTime) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Clean up old rate limit entries
+  cleanupRateLimitMap();
+
+  // Rate limiting check
+  const clientIP = getClientIP(req);
+  if (isRateLimited(clientIP)) {
+    console.log(`Rate limit exceeded for IP: ${clientIP}`);
+    return new Response(
+      JSON.stringify({ error: "Too many requests. Please try again later." }),
+      {
+        status: 429,
+        headers: { 
+          "Content-Type": "application/json",
+          "Retry-After": "3600",
+          ...corsHeaders 
+        },
+      }
+    );
   }
 
   try {
@@ -31,6 +108,29 @@ const handler = async (req: Request): Promise<Response> => {
     if (!name || !email || !message) {
       return new Response(
         JSON.stringify({ error: "Missing required fields: name, email, and message are required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Basic input validation for length limits
+    if (name.length > 100 || email.length > 255 || (company && company.length > 100) || message.length > 2000) {
+      return new Response(
+        JSON.stringify({ error: "Input exceeds maximum allowed length" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email format" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
