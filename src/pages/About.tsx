@@ -138,6 +138,9 @@ const About = () => {
         </div>
       </section>
 
+      {/* Process */}
+      <ProcessSection />
+
       {/* Who We Work With */}
       <section className="section-spacing bg-secondary">
         <div className="container-editorial">

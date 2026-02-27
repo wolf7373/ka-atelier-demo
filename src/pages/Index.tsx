@@ -184,6 +184,12 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Stats */}
+      <StatsBar />
+
+      {/* Testimonials */}
+      <Testimonials />
+
       {/* CTA Section */}
       <section className="section-spacing">
         <div className="container-editorial">
