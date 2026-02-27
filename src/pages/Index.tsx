@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import PortfolioGrid from "@/components/PortfolioGrid";
+import Testimonials from "@/components/Testimonials";
+import StatsBar from "@/components/StatsBar";
 import heroImage from "@/assets/hero-textile.jpg";
 
 const Index = () => {
