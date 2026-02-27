@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import ProcessSection from "@/components/ProcessSection";
 
 const About = () => {
   return (
@@ -136,6 +137,9 @@ const About = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Process */}
+      <ProcessSection />
 
       {/* Who We Work With */}
       <section className="section-spacing bg-secondary">
