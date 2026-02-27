@@ -14,6 +14,7 @@ const Portfolio = lazy(() => import("./pages/Portfolio"));
 const Services = lazy(() => import("./pages/Services"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
+const Journal = lazy(() => import("./pages/Journal"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
