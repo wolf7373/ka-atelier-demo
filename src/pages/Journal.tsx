@@ -24,6 +24,32 @@ const Journal = () => {
     queryFn: fetchPosts,
   });
 
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      toast({ title: "Please enter a valid email address", variant: "destructive" });
+      return;
+    }
+    setSubscribing(true);
+    const { error } = await supabase
+      .from("newsletter_subscribers")
+      .insert({ email: trimmed });
+    setSubscribing(false);
+    if (error?.code === "23505") {
+      toast({ title: "You're already subscribed!" });
+    } else if (error) {
+      toast({ title: "Something went wrong. Please try again.", variant: "destructive" });
+    } else {
+      toast({ title: "Welcome! You're now subscribed." });
+      setEmail("");
+    }
+  };
+
   return (
     <>
       {/* Hero */}
