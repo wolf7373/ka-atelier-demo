@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, Send } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const fetchPosts = async () => {
   const { data, error } = await supabase
@@ -19,6 +23,32 @@ const Journal = () => {
     queryKey: ["journal-posts"],
     queryFn: fetchPosts,
   });
+
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      toast({ title: "Please enter a valid email address", variant: "destructive" });
+      return;
+    }
+    setSubscribing(true);
+    const { error } = await supabase
+      .from("newsletter_subscribers")
+      .insert({ email: trimmed });
+    setSubscribing(false);
+    if (error?.code === "23505") {
+      toast({ title: "You're already subscribed!" });
+    } else if (error) {
+      toast({ title: "Something went wrong. Please try again.", variant: "destructive" });
+    } else {
+      toast({ title: "Welcome! You're now subscribed." });
+      setEmail("");
+    }
+  };
 
   return (
     <>
@@ -89,6 +119,40 @@ const Journal = () => {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="section-spacing">
+        <div className="container-editorial">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="max-w-xl mx-auto text-center space-y-6"
+          >
+            <span className="label-text text-champagne">Stay Updated</span>
+            <h2 className="text-foreground">Subscribe to the Journal</h2>
+            <p className="text-muted-foreground">
+              Receive studio notes on design trends, colour direction, and craft
+              — delivered to your inbox.
+            </p>
+            <form onSubmit={handleSubscribe} className="flex gap-3 max-w-md mx-auto">
+              <Input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1"
+                required
+              />
+              <Button type="submit" disabled={subscribing} variant="outline" className="gap-2">
+                {subscribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Subscribe
+              </Button>
+            </form>
+          </motion.div>
         </div>
       </section>
 
