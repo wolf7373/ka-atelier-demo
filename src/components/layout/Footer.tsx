@@ -63,9 +63,21 @@ const Footer = () => {
             <p className="text-xs text-muted-foreground">
               © {currentYear} KA_ATELIER_082. All rights reserved.
             </p>
-            <p className="text-xs text-muted-foreground">
-              Designed with intention. Crafted with care.
-            </p>
+            <div className="flex items-center gap-4">
+              {isAdmin && (
+                <Link to="/admin" className="text-xs text-muted-foreground hover:text-champagne transition-colors">
+                  Admin
+                </Link>
+              )}
+              {!user && (
+                <Link to="/login" className="text-xs text-muted-foreground hover:text-champagne transition-colors">
+                  Admin Login
+                </Link>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Designed with intention. Crafted with care.
+              </p>
+            </div>
           </div>
         </div>
       </div>
