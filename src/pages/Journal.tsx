@@ -94,27 +94,39 @@ const Journal = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: i * 0.08 }}
-                  className="group bg-secondary/50 p-8 md:p-10 flex flex-col justify-between space-y-6 hover:bg-secondary transition-colors duration-300"
+                  className="group flex flex-col overflow-hidden hover:bg-secondary transition-colors duration-300"
                 >
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <span className="label-text text-champagne">
-                        {post.tag}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {post.date}
-                      </span>
+                  {post.image_url && (
+                    <div className="image-hover aspect-[16/9]">
+                      <img
+                        src={post.image_url}
+                        alt={post.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
                     </div>
-                    <h3 className="font-display text-xl md:text-2xl text-foreground leading-snug">
-                      {post.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {post.excerpt}
-                    </p>
+                  )}
+                  <div className="bg-secondary/50 group-hover:bg-secondary p-8 md:p-10 flex flex-col justify-between space-y-6 flex-1 transition-colors duration-300">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <span className="label-text text-champagne">
+                          {post.tag}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {post.date}
+                        </span>
+                      </div>
+                      <h3 className="font-display text-xl md:text-2xl text-foreground leading-snug">
+                        {post.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {post.excerpt}
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-2 label-text text-champagne opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      Read More <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
                   </div>
-                  <span className="inline-flex items-center gap-2 label-text text-champagne opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Read More <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
                 </motion.article>
               ))}
             </div>
