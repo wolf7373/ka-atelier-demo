@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plus, Pencil, Trash2, Loader2, LogOut, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, LogOut, Eye, EyeOff, ImagePlus, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,19 +33,22 @@ interface PostForm {
   tag: string;
   date: string;
   published: boolean;
+  image_url: string | null;
 }
 
-const emptyForm: PostForm = { title: "", excerpt: "", tag: "", date: "", published: true };
+const emptyForm: PostForm = { title: "", excerpt: "", tag: "", date: "", published: true, image_url: null };
 
 const Admin = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<PostForm>(emptyForm);
+  const [uploading, setUploading] = useState(false);
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ["admin-journal-posts"],
@@ -60,18 +63,44 @@ const Admin = () => {
     enabled: isAdmin,
   });
 
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const ext = file.name.split(".").pop();
+    const fileName = `${crypto.randomUUID()}.${ext}`;
+    setUploading(true);
+    const { error } = await supabase.storage
+      .from("journal-images")
+      .upload(fileName, file, { cacheControl: "3600", upsert: false });
+    setUploading(false);
+    if (error) {
+      toast({ title: "Image upload failed", variant: "destructive" });
+      return null;
+    }
+    const { data: urlData } = supabase.storage
+      .from("journal-images")
+      .getPublicUrl(fileName);
+    return urlData.publicUrl;
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    const url = await uploadImage(file);
+    if (url) setForm((f) => ({ ...f, image_url: url }));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (post: PostForm & { id?: string }) => {
+      const payload = { title: post.title, excerpt: post.excerpt, tag: post.tag, date: post.date, published: post.published, image_url: post.image_url };
       if (post.id) {
-        const { error } = await supabase
-          .from("journal_posts")
-          .update({ title: post.title, excerpt: post.excerpt, tag: post.tag, date: post.date, published: post.published })
-          .eq("id", post.id);
+        const { error } = await supabase.from("journal_posts").update(payload).eq("id", post.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("journal_posts")
-          .insert({ title: post.title, excerpt: post.excerpt, tag: post.tag, date: post.date, published: post.published });
+        const { error } = await supabase.from("journal_posts").insert(payload);
         if (error) throw error;
       }
     },
@@ -106,7 +135,7 @@ const Admin = () => {
 
   const openEdit = (post: any) => {
     setEditId(post.id);
-    setForm({ title: post.title, excerpt: post.excerpt, tag: post.tag, date: post.date, published: post.published });
+    setForm({ title: post.title, excerpt: post.excerpt, tag: post.tag, date: post.date, published: post.published, image_url: post.image_url });
     setDialogOpen(true);
   };
 
@@ -160,8 +189,15 @@ const Admin = () => {
               {posts?.map((post) => (
                 <div
                   key={post.id}
-                  className="flex items-start justify-between gap-4 p-6 bg-secondary/50 hover:bg-secondary transition-colors"
+                  className="flex items-start gap-4 p-6 bg-secondary/50 hover:bg-secondary transition-colors"
                 >
+                  {post.image_url && (
+                    <img
+                      src={post.image_url}
+                      alt={post.title}
+                      className="w-20 h-14 object-cover shrink-0 rounded-sm"
+                    />
+                  )}
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-3">
                       <span className="label-text text-champagne">{post.tag}</span>
@@ -202,6 +238,51 @@ const Admin = () => {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Image upload */}
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              {form.image_url ? (
+                <div className="relative">
+                  <img
+                    src={form.image_url}
+                    alt="Post image"
+                    className="w-full aspect-[16/9] object-cover rounded-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 bg-background/80 hover:bg-background"
+                    onClick={() => setForm((f) => ({ ...f, image_url: null }))}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full aspect-[16/9] border-2 border-dashed border-border rounded-sm flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                >
+                  {uploading ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <>
+                      <ImagePlus className="w-6 h-6" />
+                      <span className="text-sm">Add cover image</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
             <Input
               placeholder="Title"
               value={form.title}
