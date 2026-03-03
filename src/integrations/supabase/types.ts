@@ -20,6 +20,7 @@ export type Database = {
           date: string
           excerpt: string
           id: string
+          image_url: string | null
           published: boolean
           tag: string
           title: string
@@ -30,6 +31,7 @@ export type Database = {
           date: string
           excerpt: string
           id?: string
+          image_url?: string | null
           published?: boolean
           tag: string
           title: string
@@ -40,6 +42,7 @@ export type Database = {
           date?: string
           excerpt?: string
           id?: string
+          image_url?: string | null
           published?: boolean
           tag?: string
           title?: string
