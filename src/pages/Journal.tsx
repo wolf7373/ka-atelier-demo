@@ -112,10 +112,10 @@ const Journal = () => {
                   transition={{ duration: 0.6, delay: i * 0.08 }}
                   className="group flex flex-col overflow-hidden hover:bg-secondary transition-colors duration-300"
                 >
-                  {post.image_url && (
+                  {(post.image_url || fallbackImages[post.id]) && (
                     <div className="image-hover aspect-[16/9]">
                       <img
-                        src={post.image_url}
+                        src={post.image_url || fallbackImages[post.id]}
                         alt={post.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
