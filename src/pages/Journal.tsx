@@ -8,6 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+import botanicalImg from "@/assets/journal/botanical-motifs.jpg";
+import colourImg from "@/assets/journal/colour-forecasting.jpg";
+import wallpaperImg from "@/assets/journal/wallpaper-collection.jpg";
+import craftImg from "@/assets/journal/craft-meets-code.jpg";
+import sustainabilityImg from "@/assets/journal/sustainability.jpg";
+import blockPrintingImg from "@/assets/journal/block-printing.jpg";
+
+const fallbackImages: Record<string, string> = {
+  "170417b4-bf15-425f-9233-0b57062fe001": botanicalImg,
+  "59284f95-53ee-49f3-b9b4-5290ff006314": colourImg,
+  "e367fbb4-0434-4086-a52b-c99459e08a32": wallpaperImg,
+  "d77d2880-6b32-436e-bbda-53d061285ebf": craftImg,
+  "e9796659-d354-4bc7-bf86-c7db656d673a": sustainabilityImg,
+  "6319449e-6899-4258-90d7-1fefe2c8cf39": blockPrintingImg,
+};
+
 const fetchPosts = async () => {
   const { data, error } = await supabase
     .from("journal_posts")
@@ -96,10 +112,10 @@ const Journal = () => {
                   transition={{ duration: 0.6, delay: i * 0.08 }}
                   className="group flex flex-col overflow-hidden hover:bg-secondary transition-colors duration-300"
                 >
-                  {post.image_url && (
+                  {(post.image_url || fallbackImages[post.id]) && (
                     <div className="image-hover aspect-[16/9]">
                       <img
-                        src={post.image_url}
+                        src={post.image_url || fallbackImages[post.id]}
                         alt={post.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
