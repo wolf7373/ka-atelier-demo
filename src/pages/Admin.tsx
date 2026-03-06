@@ -30,13 +30,14 @@ import {
 interface PostForm {
   title: string;
   excerpt: string;
+  content: string;
   tag: string;
   date: string;
   published: boolean;
   image_url: string | null;
 }
 
-const emptyForm: PostForm = { title: "", excerpt: "", tag: "", date: "", published: true, image_url: null };
+const emptyForm: PostForm = { title: "", excerpt: "", content: "", tag: "", date: "", published: true, image_url: null };
 
 const Admin = () => {
   const { user, isAdmin, loading, signOut } = useAuth();
@@ -95,7 +96,7 @@ const Admin = () => {
 
   const saveMutation = useMutation({
     mutationFn: async (post: PostForm & { id?: string }) => {
-      const payload = { title: post.title, excerpt: post.excerpt, tag: post.tag, date: post.date, published: post.published, image_url: post.image_url };
+      const payload = { title: post.title, excerpt: post.excerpt, content: post.content || null, tag: post.tag, date: post.date, published: post.published, image_url: post.image_url };
       if (post.id) {
         const { error } = await supabase.from("journal_posts").update(payload).eq("id", post.id);
         if (error) throw error;
@@ -135,7 +136,7 @@ const Admin = () => {
 
   const openEdit = (post: any) => {
     setEditId(post.id);
-    setForm({ title: post.title, excerpt: post.excerpt, tag: post.tag, date: post.date, published: post.published, image_url: post.image_url });
+    setForm({ title: post.title, excerpt: post.excerpt, content: post.content || "", tag: post.tag, date: post.date, published: post.published, image_url: post.image_url });
     setDialogOpen(true);
   };
 
@@ -304,11 +305,17 @@ const Admin = () => {
               />
             </div>
             <Textarea
-              placeholder="Excerpt"
+              placeholder="Excerpt (short summary for cards)"
               value={form.excerpt}
               onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
-              rows={4}
+              rows={3}
               required
+            />
+            <Textarea
+              placeholder="Full content (supports ## headings, separate paragraphs with blank lines)"
+              value={form.content}
+              onChange={(e) => setForm({ ...form, content: e.target.value })}
+              rows={10}
             />
             <div className="flex items-center gap-3">
               <Switch
