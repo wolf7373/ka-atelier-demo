@@ -1,0 +1,1 @@
+DELETE FROM public.journal_posts WHERE id = 'c9078276-c14c-4f75-a3c5-ec38a095527b';
