@@ -16,6 +16,7 @@ const Services = lazy(() => import("./pages/Services"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Journal = lazy(() => import("./pages/Journal"));
+const JournalPost = lazy(() => import("./pages/JournalPost"));
 const Login = lazy(() => import("./pages/Login"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/journal" element={<Journal />} />
+              <Route path="/journal/:id" element={<JournalPost />} />
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/admin" element={<Admin />} />

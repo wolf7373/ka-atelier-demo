@@ -104,8 +104,8 @@ const Journal = () => {
           ) : (
             <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
               {posts?.map((post, i) => (
+                <Link key={post.id} to={`/journal/${post.id}`}>
                 <motion.article
-                  key={post.id}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -144,6 +144,7 @@ const Journal = () => {
                     </span>
                   </div>
                 </motion.article>
+                </Link>
               ))}
             </div>
           )}
